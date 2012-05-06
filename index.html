@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<link rel="stylesheet" href="css/bootstrap.css">
+	<link rel="stylesheet" href="css/tipsy.css">
+	
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+	<script src="js/jquery.tipsy.js"></script>
+	
+	<script>
+	$(function(){
+		
+		//LOAD Youtube Player
+		var tag = document.createElement('script');
+		tag.src = "https://www.youtube.com/player_api";
+		var firstScriptTag = document.getElementsByTagName('script')[0];
+		firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+		var player;
+
+		$('#mainSearch').keydown(function(){
+			getJSONFeed();
+			clearTipsy();	
+		});
+		
+		$(window).mousemove(function(){
+			clearTipsy();
+		});	
+	});
+	
+	function getJSONFeed(){
+		
+		//Check if query isnt an empty string.
+		if($('#mainSearch').val() != ""){
+			
+			//Load JSON-encoded data from youtube-feed using a GET HTTP request.
+			$.getJSON('http://gdata.youtube.com/feeds/api/videos?q=' + $('#mainSearch').val() + '&max-results=20&v=2&alt=json', function(data){
+				
+				console.log('JSON FEED');console.log(data);	
+				
+				//Clear table for new results.
+				$('#table1 > tbody').empty();
+				
+				//Loop trough each entry (a video).
+				$(data.feed.entry).each(function(i){
+					
+					//Init youtube player on first video.
+					if(i == 0)
+						player = new YT.Player('ytplayer', {height: '200', width: '250', videoId: this.media$group.yt$videoid.$t.toString()});
+					
+					//Append data to table.
+					$('#table1 > tbody').append('<tr><td>Video ' + i + '</td><td>' + this.title.$t.toString() + '</td><td>' + this.author[0].name.$t.toString() + '</td><td>' + this.yt$statistics.viewCount + '</td><td class="thumbUrl" style="display: none;">' + this.media$group.media$thumbnail[1].url.toString() + '</td>/tr>');
+					
+					//Append tipsy with thumbnail.
+					$('tr:last').tipsy({gravity: 'w', fallback: '<img src="' + $('tr:last').find('.thumbUrl').html() + '" />', html:true, offset: 5});
+				});
+				
+			}, 'json');
+		}
+	}
+	
+	function getAtomFeed(){
+		
+		//Load Atom-encoded data (XML) from youtube-feed using a GET HTTP request.
+		$.get('http://gdata.youtube.com/feeds/api/videos/1sKG_iI6fOQ/comments?v=2', function(data){
+			console.log('ATOM FEED');
+			console.log(data);
+		}, 'xml');
+	}
+	
+	//BUGFIX, remove old tipsies.
+	function clearTipsy(){
+		$('.tipsy:not(:first-child)').remove();
+	}
+	</script>
+</head>
+<body>
+<div id="wrapper">
+
+	<div id="content">
+			<h1 style="text-align: center; margin-bottom: 10px;">Youtube API Demo</h1>
+			<p style="font-style: italic; text-align: center;">Type something and check the result.</p>
+		<form class="well form-search" style="width: 180px; margin: 0px auto 20px auto;">
+		  <input id="mainSearch" type="text" class="input-medium search-query" placeholder="Type something...">
+		</form>
+		<table id="table1" class="table table-condensed table-bordered table-striped" style="width: 800px; margin: 0px auto 20px auto;">
+			<thead>
+				<tr>
+					<th>#</th>
+					<th>Title</th>
+					<th>Owner</th>
+					<th>Views</th>
+				</tr>
+			</thead>
+			<tbody>
+				
+			</tbody>
+		</table>
+				<div id="ytplayer" style="margin: 0px auto; display:block;"></div>
+		<button onClick="getAtomFeed()" class="btn" style=" width: 120px;margin: 20px auto 0px auto; display: block;">Get atom feed</button>
+	</div>
+</body>
+</html>
